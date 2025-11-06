@@ -7,12 +7,14 @@ import {
   verifyPayment,
   RazorpayPaymentResponse,
 } from "@/common/lib/payment-actions";
+import { CreditCard } from "lucide-react";
 
 interface PaymentButtonProps {
   amount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  className?: string;
 }
 
 export default function PaymentButton({
@@ -20,6 +22,7 @@ export default function PaymentButton({
   customerName,
   customerEmail,
   customerPhone,
+  className,
 }: PaymentButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,8 +103,9 @@ export default function PaymentButton({
 
   return (
     <div>
-      <button onClick={handlePayment} disabled={loading}>
-        {loading ? "Processing..." : "Pay Now"}
+      <button className={className} onClick={handlePayment} disabled={loading}>
+        <CreditCard className="w-5 h-5" />
+        {loading ? "Processing..." : "Buy Now"}
       </button>
 
       {/* Inline error message */}

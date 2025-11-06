@@ -1,5 +1,6 @@
 "use server"
 import Razorpay from "razorpay";
+import { RazorpayOrder, RazorpayPayment } from "../types/razorpay";
 
 if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     throw new Error("Razorpay credentials missing in environment variables");
@@ -13,7 +14,22 @@ const razorpay = new Razorpay({
 
 /**
  * Fetch all Razorpay orders
+ * 
  */
+
+export type ExtendedOrderStatus =
+    | "created"
+    | "attempted"
+    | "paid"
+    | "refunded"
+    | "failed"
+    | "pending";
+
+export type ExtendedOrder = Omit<RazorpayOrder, "status"> & {
+    status: ExtendedOrderStatus;
+    payments?: RazorpayPayment[];
+};
+
 export async function getAllOrders(limit = 10) {
     try {
         const { items: orders } = await razorpay.orders.all({ count: limit });
@@ -22,16 +38,26 @@ export async function getAllOrders(limit = 10) {
             orders.map(async (order) => {
                 const { items: payments } = await razorpay.orders.fetchPayments(order.id);
 
-                const refundStatus = payments.some(
-                    (p) => p.status === "refunded" || p.refund_status === "full"
-                )
-                    ? "refunded"
-                    : order.status;
+                let computedStatus: ExtendedOrderStatus = order.status as ExtendedOrderStatus;
+
+                if (payments.length > 0) {
+                    const payment = payments[0]; // Razorpay orders rarely have >1 payment
+
+                    if (payment.status === "captured") {
+                        computedStatus = "paid";
+                    } else if (payment.status === "refunded" || payment.refund_status === "full") {
+                        computedStatus = "refunded";
+                    } else if (payment.status === "failed") {
+                        computedStatus = "failed";
+                    } else if (payment.status === "authorized") {
+                        computedStatus = "pending";
+                    }
+                }
 
                 return {
                     ...order,
                     payments,
-                    status: refundStatus,
+                    status: computedStatus,
                 };
             })
         );

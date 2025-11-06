@@ -19,8 +19,6 @@ export async function POST(req: Request) {
 
     // 2️⃣ Parse and handle the event
     const event = JSON.parse(rawBody);
-    console.log("Webhook event received:", event.payload.payment.entity.notes);
-
 
     switch (event.event) {
         case "payment.captured":
